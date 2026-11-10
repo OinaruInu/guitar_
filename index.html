@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2a44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="コード起こし">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+<title>コード起こし</title>
+</head>
+<body>
+<header class="top">
+  <h1>🎸 コード起こし</h1>
+  <button id="btnLibrary" class="ghost">保存した曲</button>
+</header>
+
+<main>
+  <!-- input -->
+  <section id="inputCard" class="card">
+    <h2>音源を読み込む</h2>
+    <p class="hint">解析はすべてこのiPhoneの中で行われ、音声はどこにも送信されません。</p>
+    <label class="bigbtn" for="fileInput">📁 音声ファイルを選ぶ<small>mp3 / m4a / wav / aac（自分で持っている音源）</small></label>
+    <input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac" hidden>
+    <button id="btnRec" class="bigbtn rec">🎙️ マイクで録音して解析<small>スピーカーで流した曲や自分の演奏を拾います</small></button>
+    <div id="recPanel" class="recpanel" hidden>
+      <div class="rectime"><span class="dot-red"></span><span id="recTime">0:00</span></div>
+      <div class="meter"><div id="recLevel"></div></div>
+      <div class="live">いま聞こえるコード: <b id="liveChord">–</b></div>
+      <button id="btnRecStop" class="primary">■ 停止して解析</button>
+      <button id="btnRecCancel" class="ghost">キャンセル</button>
+      <p class="hint">ヒント: スピーカーとiPhoneを近づけ、静かな場所で録音すると精度が上がります。</p>
+    </div>
+    <div id="progress" class="progress" hidden>
+      <div class="bar"><div id="progBar"></div></div>
+      <div id="progText">解析中…</div>
+    </div>
+  </section>
+
+  <!-- result -->
+  <section id="result" hidden>
+    <div class="card songhead">
+      <input id="songName" class="songname" placeholder="曲名を入力">
+      <div class="meta" id="meta"></div>
+    </div>
+
+    <div class="card player" id="playerCard">
+      <audio id="audio" controls playsinline preload="auto"></audio>
+      <div class="nowrow">
+        <div class="now"><small>現在</small><span id="nowChord">–</span></div>
+        <div class="next"><small>次</small><span id="nextChord">–</span></div>
+      </div>
+      <div class="row">
+        <label>速度 <select id="rate"><option value="0.5">0.5x</option><option value="0.75">0.75x</option><option value="1" selected>1.0x</option></select></label>
+        <label class="chk"><input type="checkbox" id="follow" checked> 自動スクロール</label>
+      </div>
+    </div>
+    <p id="noAudio" class="hint card" hidden>この曲は音声が保存されていないため再生できません（コード譜のみ）。</p>
+
+    <div class="card controls">
+      <div class="ctl">
+        <span class="lbl">移調</span>
+        <button class="step" id="trDown">−</button>
+        <span id="trVal" class="val">0</span>
+        <button class="step" id="trUp">＋</button>
+        <span id="keyShow" class="sub"></span>
+      </div>
+      <div class="ctl">
+        <span class="lbl">カポ</span>
+        <button class="step" id="capoDown">−</button>
+        <span id="capoVal" class="val">0</span>
+        <button class="step" id="capoUp">＋</button>
+        <button id="capoAuto" class="chip">おすすめ</button>
+      </div>
+      <div id="capoHint" class="sub"></div>
+      <div class="ctl">
+        <span class="lbl">拍子</span>
+        <select id="meter"><option value="4">4/4</option><option value="3">3/4</option><option value="2">2/4</option></select>
+        <span class="lbl">小節頭</span>
+        <button class="step sm" id="dbLeft">◀</button>
+        <button class="step sm" id="dbRight">▶</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>コード譜 <small class="sub">コードをタップで編集</small></h2>
+      <div id="sheet" class="sheet"></div>
+    </div>
+
+    <div class="card">
+      <h2>使うコード</h2>
+      <div id="diagrams" class="diagrams"></div>
+    </div>
+
+    <div class="card">
+      <h2>歌詞メモ <small class="sub">歌詞は自分で入力してください</small></h2>
+      <textarea id="lyrics" rows="10" placeholder="ここに歌詞やメモを自由に入力できます。&#10;例: [C]ここに歌詞 [G]を書く"></textarea>
+    </div>
+
+    <div class="actions">
+      <button id="btnSave" class="primary">💾 保存</button>
+      <button id="btnExport">📝 テキストで書き出し</button>
+      <button id="btnNew" class="ghost">＋ 新しい曲</button>
+    </div>
+  </section>
+
+  <footer class="foot">個人利用の試作版です。音源・歌詞の共有や配布はしないでください。</footer>
+</main>
+
+<!-- edit modal -->
+<div id="editModal" class="modal" hidden>
+  <div class="sheetbox">
+    <h3>コードを編集</h3>
+    <p class="sub" id="editInfo"></p>
+    <input id="editInput" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <p class="hint">スペース区切りで複数入力すると拍を等分します（例: <code>Am G</code>）。<code>N</code> = コードなし</p>
+    <div id="editChips" class="chips"></div>
+    <div class="row">
+      <button id="editPlay" class="ghost">▶ ここから再生</button>
+      <button id="editCancel" class="ghost">閉じる</button>
+      <button id="editOk" class="primary">適用</button>
+    </div>
+  </div>
+</div>
+
+<!-- library modal -->
+<div id="libModal" class="modal" hidden>
+  <div class="sheetbox">
+    <h3>保存した曲</h3>
+    <ul id="libList" class="lib"></ul>
+    <div class="row"><button id="libClose" class="ghost">閉じる</button></div>
+  </div>
+</div>
+
+<!-- export modal -->
+<div id="expModal" class="modal" hidden>
+  <div class="sheetbox">
+    <h3>テキスト書き出し</h3>
+    <textarea id="expText" rows="14" readonly></textarea>
+    <div class="row">
+      <button id="expCopy">コピー</button>
+      <button id="expShare">共有</button>
+      <button id="expDl">ダウンロード</button>
+      <button id="expClose" class="ghost">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
